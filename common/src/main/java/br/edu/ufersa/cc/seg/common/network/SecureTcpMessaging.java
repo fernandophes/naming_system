@@ -1,10 +1,14 @@
 package br.edu.ufersa.cc.seg.common.network;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.crypto.SecurityMessage;
 import lombok.RequiredArgsConstructor;
-import java.io.*;
-import java.net.Socket;
+import lombok.val;
 
 /**
  * Implementação TCP da interface SecureMessaging
@@ -17,7 +21,7 @@ public class SecureTcpMessaging implements SecureMessaging {
     private final ObjectOutputStream out;
     private final ObjectInputStream in;
 
-    public SecureTcpMessaging(Socket socket, CryptoService cryptoService) throws IOException {
+    public SecureTcpMessaging(final Socket socket, final CryptoService cryptoService) throws IOException {
         this.socket = socket;
         this.cryptoService = cryptoService;
         this.out = new ObjectOutputStream(socket.getOutputStream());
@@ -25,8 +29,8 @@ public class SecureTcpMessaging implements SecureMessaging {
     }
 
     @Override
-    public void sendSecure(String destination, byte[] message) throws IOException {
-        SecurityMessage secureMsg = cryptoService.encrypt(message);
+    public void sendSecure(final String destination, final byte[] message) throws IOException {
+        final var secureMsg = cryptoService.encrypt(message);
         out.writeObject(secureMsg);
         out.flush();
     }
@@ -34,9 +38,9 @@ public class SecureTcpMessaging implements SecureMessaging {
     @Override
     public byte[] receiveSecure() throws IOException {
         try {
-            SecurityMessage secureMsg = (SecurityMessage) in.readObject();
+            val secureMsg = (SecurityMessage) in.readObject();
             return cryptoService.decrypt(secureMsg);
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             throw new IOException("Erro ao deserializar mensagem", e);
         }
     }

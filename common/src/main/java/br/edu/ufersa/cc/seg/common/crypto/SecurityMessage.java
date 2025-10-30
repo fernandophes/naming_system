@@ -1,5 +1,7 @@
 package br.edu.ufersa.cc.seg.common.crypto;
 
+import java.io.Serializable;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,7 +11,7 @@ import lombok.Data;
  */
 @Data
 @Builder
-public class SecurityMessage {
+public class SecurityMessage implements Serializable {
 
     /**
      * Conteúdo cifrado com algoritmo simétrico

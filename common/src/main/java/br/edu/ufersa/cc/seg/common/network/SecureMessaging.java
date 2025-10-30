@@ -1,7 +1,5 @@
 package br.edu.ufersa.cc.seg.common.network;
 
-import br.edu.ufersa.cc.seg.common.crypto.SecurityMessage;
-
 import java.io.Closeable;
 import java.io.IOException;
 
