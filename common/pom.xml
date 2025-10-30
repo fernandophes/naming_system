@@ -13,7 +13,11 @@
     <artifactId>common</artifactId>
     <name>common</name>
     <description>Módulo comum com código compartilhado entre as questões</description>
-
+    
+    <!-- Impedir repackage do Spring Boot neste módulo (é uma biblioteca) -->
+    <properties>
+        <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+    </properties>
     <dependencies>
         <!-- Spring Security para criptografia -->
         <dependency>
