@@ -105,6 +105,8 @@ public class CryptoService {
             log.debug("Mensagem descriptografada:\n{}", new String(original));
 
             return original;
+        } catch (final CryptoException e) {
+            throw e;
         } catch (final Exception e) {
             log.error("Erro ao decifrar mensagem", e);
             throw new CryptoException("Erro de criptografia", e);

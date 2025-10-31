@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import br.edu.ufersa.cc.seg.common.crypto.CryptoException;
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
@@ -123,7 +124,9 @@ public class DnsServer {
                 }
             }
         } catch (final IOException e) {
-            log.debug("Cliente desconectado ou erro de E/S: {}", e.getMessage());
+            log.error("Cliente desconectado ou erro de E/S: {}", e.getMessage());
+        } catch (final CryptoException e) {
+            log.error("Erro de criptografia: {}", e.getMessage());
         } catch (final Exception e) {
             log.error("Erro processando cliente", e);
         } finally {

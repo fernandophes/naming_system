@@ -1,5 +1,6 @@
 package br.edu.ufersa.cc.seg.dns.client;
 
+import java.io.EOFException;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -31,13 +32,15 @@ public class Requisitante {
     public static void main(final String[] args) throws Exception {
         val scanner = new Scanner(System.in);
 
-        val notificationListener = new Thread(() -> listenNotifications());
+        val notificationListener = new Thread(() -> listenNotifications(scanner));
+
         val interaction = new Thread(() -> {
             interact(scanner);
             notificationListener.interrupt();
         });
 
         notificationListener.start();
+        Thread.sleep(1000);
         interaction.start();
         interaction.join();
 
@@ -59,8 +62,11 @@ public class Requisitante {
                 }
 
             } while (!"x".equalsIgnoreCase(input) && !Thread.currentThread().isInterrupted());
-
-        } catch (Exception e) {
+        } catch (final IllegalStateException e) {
+            System.out.println();
+            log.info("Encerrando...");
+        } catch (final Exception e) {
+            System.out.println();
             log.error("Erro ao processar consulta", e);
         }
     }
@@ -99,14 +105,16 @@ public class Requisitante {
     }
 
     @SneakyThrows
-    private static void listenNotifications() {
+    private static void listenNotifications(final Scanner scanner) {
         while (!Thread.currentThread().isInterrupted()) {
             try (val comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
-
                 registerForNotifications(comm);
                 receiveNotifications(comm);
-
-            } catch (Exception e) {
+            } catch (final EOFException e) {
+                log.error("Credenciais desconhecidas");
+                Thread.currentThread().interrupt();
+                scanner.close();
+            } catch (final Exception e) {
                 if (Thread.currentThread().isInterrupted()) {
                     break;
                 }
