@@ -1,49 +1,62 @@
 package br.edu.ufersa.cc.seg.dns.client;
 
+import java.net.Socket;
+import java.util.Base64;
+import java.util.Scanner;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.net.Socket;
-import java.util.Base64;
+import lombok.val;
 
 /**
  * Cliente simples que envia UPDATE (registrador)
- * args: <host> <port> <encKeyBase64> <hmacKeyBase64> <name> <ip>
  */
 public class Registrador {
 
-    public static void main(String[] args) throws Exception {
-        if (args.length < 6) {
-            System.out.println("Usage: Registrador <host> <port> <encKeyBase64> <hmacKeyBase64> <name> <ip>");
-            System.exit(1);
-        }
+    // Localização do servidor DNS
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 9000;
 
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        byte[] encKey = Base64.getDecoder().decode(args[2]);
-        byte[] hmacKey = Base64.getDecoder().decode(args[3]);
-        String name = args[4];
-        String ip = args[5];
+    // Chaves fixas para demo
+    private static final byte[] ENC_KEY = Base64.getDecoder().decode("DJXkb7GyuXP5Hfep9OLukQ==");
+    private static final byte[] HMAC_KEY = Base64.getDecoder().decode("QYp+xG2d7Ir8Xo2ZyD7m8FJKwrFrxd9ayN9i4mBQlTg=");
 
-        CryptoService crypto = new CryptoService(encKey, hmacKey);
-        ObjectMapper mapper = new ObjectMapper();
+    private static CryptoService cryptoService = new CryptoService(ENC_KEY, HMAC_KEY);
+    private static ObjectMapper mapper = new ObjectMapper();
 
-        try (Socket s = new Socket(host, port);
-             SecureMessaging comm = new SecureTcpMessaging(s, crypto)) {
+    public static void main(final String[] args) throws Exception {
+        val scanner = new Scanner(System.in);
 
-            ObjectNode upd = mapper.createObjectNode();
-            upd.put("type", "UPDATE");
-            upd.put("name", name);
-            upd.put("ip", ip);
+        // Receber dados do usuário
+        System.out.println("REGISTRAR NOVO DOMÍNIO");
+        System.out.println("Nome: ");
+        val name = scanner.nextLine();
+        System.out.println("Endereço: ");
+        val ip = scanner.nextLine();
 
-            comm.sendSecure(mapper.writeValueAsBytes(upd));
+        // Abrir conexão
+        try (val socket = new Socket(SERVER_HOST, SERVER_PORT);
+                final SecureMessaging comm = new SecureTcpMessaging(socket, cryptoService)) {
 
-            byte[] resp = comm.receiveSecure();
+            // Construir mensagem UPDATE
+            val request = mapper.createObjectNode();
+            request.put("type", "UPDATE");
+            request.put("name", name);
+            request.put("ip", ip);
+
+            // Enviar
+            comm.sendSecure(mapper.writeValueAsBytes(request));
+
+            // Receber e imprimir resposta
+            val resp = comm.receiveSecure();
             System.out.println("Resposta: " + new String(resp));
         }
+
+        // Fechar entrada
+        scanner.close();
     }
 
 }

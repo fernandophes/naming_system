@@ -60,7 +60,6 @@ public class CryptoService {
                     .iv(iv)
                     .timestamp(timestamp)
                     .build();
-
         } catch (final Exception e) {
             log.error("Erro ao cifrar mensagem", e);
             throw new CryptoException("Erro de criptografia", e);
