@@ -1,7 +1,6 @@
 package br.edu.ufersa.cc.seg.dns.client;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -56,9 +55,7 @@ public class Registrador {
         val ip = scanner.nextLine();
 
         // Abrir conexão
-        try (val socket = new Socket(SERVER_HOST, SERVER_PORT);
-                final SecureMessaging comm = new SecureTcpMessaging(socket, cryptoService)) {
-
+        try (final SecureMessaging comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
             // Construir mensagem UPDATE
             val request = mapper.createObjectNode();
             request.put("type", "UPDATE");

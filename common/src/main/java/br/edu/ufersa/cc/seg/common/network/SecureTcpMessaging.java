@@ -3,6 +3,7 @@ package br.edu.ufersa.cc.seg.common.network;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
@@ -26,6 +27,14 @@ public class SecureTcpMessaging implements SecureMessaging {
         this.cryptoService = cryptoService;
         this.out = new ObjectOutputStream(socket.getOutputStream());
         this.in = new ObjectInputStream(socket.getInputStream());
+    }
+
+    public SecureTcpMessaging(final String host, final int port, final CryptoService cryptoService) throws IOException {
+        this(new Socket(host, port), cryptoService);
+    }
+
+    public SecureTcpMessaging(final ServerSocket serverSocket, final CryptoService cryptoService) throws IOException {
+        this(serverSocket.accept(), cryptoService);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package br.edu.ufersa.cc.seg.dns.client;
 
-import java.net.Socket;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -68,8 +67,7 @@ public class Requisitante {
 
     @SneakyThrows
     private static void sendQuery(final String name) {
-        try (val socket = new Socket(SERVER_HOST, SERVER_PORT);
-                val comm = new SecureTcpMessaging(socket, cryptoService)) {
+        try (val comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
 
             // Envia requisição
             val request = mapper.createObjectNode();
@@ -103,9 +101,8 @@ public class Requisitante {
     @SneakyThrows
     private static void listenNotifications() {
         while (!Thread.currentThread().isInterrupted()) {
-            try (val socket = new Socket(SERVER_HOST, SERVER_PORT);
-                    val comm = new SecureTcpMessaging(socket, cryptoService)) {
-                
+            try (val comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
+
                 registerForNotifications(comm);
                 receiveNotifications(comm);
 

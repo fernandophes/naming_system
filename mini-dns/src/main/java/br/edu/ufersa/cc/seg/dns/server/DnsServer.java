@@ -2,7 +2,6 @@ package br.edu.ufersa.cc.seg.dns.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +70,7 @@ public class DnsServer {
             // Fica ouvindo novos clientes
             while (true) {
                 // Aceita nova conexão
-                final Socket clientSocket = serverSocket.accept();
+                val clientSocket = new SecureTcpMessaging(serverSocket, cryptoService);
 
                 // Delega uma nova thread para atender
                 new Thread(() -> handleClient(clientSocket)).start();
@@ -81,14 +80,11 @@ public class DnsServer {
         }
     }
 
-    private void handleClient(final Socket clientSocket) {
+    private void handleClient(final SecureMessaging secureComm) {
         // Inicializa valores padrão
-        SecureMessaging secureComm = null;
-        boolean registeredForNotify = false;
+        var registeredForNotify = false;
 
         try {
-            secureComm = new SecureTcpMessaging(clientSocket, cryptoService);
-
             while (true) {
                 // Recebe mensagem criptografada em bytes
                 val payload = secureComm.receiveSecure();
