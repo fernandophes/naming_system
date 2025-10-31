@@ -6,9 +6,12 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,6 +41,8 @@ public class CryptoService {
      * integridade/autenticidade
      */
     public SecurityMessage encrypt(final byte[] message) {
+        log.debug("Criptografando mensagem...\n{}", new String(message));
+
         try {
             // Gerar IV aleatório
             val iv = new byte[IV_SIZE];
@@ -54,12 +59,17 @@ public class CryptoService {
             val hmac = generateHmac(encrypted, iv, timestamp);
 
             // Retorna mensagem segura
-            return SecurityMessage.builder()
+            val securityMessage = SecurityMessage.builder()
                     .encryptedContent(encrypted)
                     .hmac(hmac)
                     .iv(iv)
                     .timestamp(timestamp)
                     .build();
+
+            val writer = new ObjectMapper().writerWithDefaultPrettyPrinter();
+            log.debug("Mensagem criptografada:\n{}", writer.writeValueAsString(securityMessage));
+
+            return securityMessage;
         } catch (final Exception e) {
             log.error("Erro ao cifrar mensagem", e);
             throw new CryptoException("Erro de criptografia", e);
@@ -70,7 +80,11 @@ public class CryptoService {
      * Decifra uma mensagem e valida seu HMAC para garantir
      * integridade/autenticidade
      */
+    @SneakyThrows
     public byte[] decrypt(final SecurityMessage secureMsg) {
+        val writer = new ObjectMapper().writerWithDefaultPrettyPrinter();
+        log.debug("Descriptografando mensagem...\n{}", writer.writeValueAsString(secureMsg));
+
         try {
             // Valida HMAC primeiro
             val expectedHmac = generateHmac(
@@ -87,7 +101,10 @@ public class CryptoService {
             cipher.init(Cipher.DECRYPT_MODE, encryptionKey,
                     new IvParameterSpec(secureMsg.getIv()));
 
-            return cipher.doFinal(secureMsg.getEncryptedContent());
+            val original = cipher.doFinal(secureMsg.getEncryptedContent());
+            log.debug("Mensagem descriptografada:\n{}", new String(original));
+
+            return original;
         } catch (final Exception e) {
             log.error("Erro ao decifrar mensagem", e);
             throw new CryptoException("Erro de criptografia", e);
