@@ -3,7 +3,6 @@ package br.edu.ufersa.cc.seg.dns;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.stereotype.Component;
 
 import br.edu.ufersa.cc.seg.dns.server.DnsServer;
 import lombok.AllArgsConstructor;

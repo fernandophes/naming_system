@@ -13,15 +13,14 @@ import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
 import lombok.val;
 
 /**
- * Cliente simples que envia UPDATE (registrador)
+ * Cliente simples que envia QUERY (requisitante)
  */
-public class Registrador {
+public class Requisitante {
 
-    // Localização do servidor DNS
     private static final String SERVER_HOST = "localhost";
     private static final int SERVER_PORT = 9000;
 
-    // Chaves fixas para demo
+    // Chaves de demonstração — devem ser as mesmas do servidor (BeanConfig)
     private static final byte[] ENC_KEY = Base64.getDecoder().decode("DJXkb7GyuXP5Hfep9OLukQ==");
     private static final byte[] HMAC_KEY = Base64.getDecoder().decode("QYp+xG2d7Ir8Xo2ZyD7m8FJKwrFrxd9ayN9i4mBQlTg=");
 
@@ -37,13 +36,11 @@ public class Registrador {
             repeat = interact(scanner);
         }
 
-        // Fechar entrada
         scanner.close();
     }
 
     private static boolean interact(final Scanner scanner) throws IOException {
-        // Receber dados do usuário
-        System.out.println("REGISTRAR NOVO DOMÍNIO (Digite 'x' para sair)");
+        System.out.println("CONSULTAR DOMÍNIO (Digite 'x' para sair)");
         System.out.print("Nome:\t");
         val name = scanner.nextLine();
 
@@ -52,23 +49,15 @@ public class Registrador {
             return false;
         }
 
-        System.out.print("IP:\t");
-        val ip = scanner.nextLine();
-
-        // Abrir conexão
         try (val socket = new Socket(SERVER_HOST, SERVER_PORT);
                 final SecureMessaging comm = new SecureTcpMessaging(socket, cryptoService)) {
 
-            // Construir mensagem UPDATE
             val request = mapper.createObjectNode();
-            request.put("type", "UPDATE");
+            request.put("type", "QUERY");
             request.put("name", name);
-            request.put("ip", ip);
 
-            // Enviar
             comm.sendSecure(mapper.writeValueAsBytes(request));
 
-            // Receber e imprimir resposta
             val resp = comm.receiveSecure();
             System.out.println("Resposta: " + new String(resp));
         }
