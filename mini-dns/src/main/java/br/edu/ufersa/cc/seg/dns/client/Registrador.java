@@ -39,7 +39,7 @@ public class Registrador {
             upd.put("name", name);
             upd.put("ip", ip);
 
-            comm.sendSecure("server", mapper.writeValueAsBytes(upd));
+            comm.sendSecure(mapper.writeValueAsBytes(upd));
 
             byte[] resp = comm.receiveSecure();
             System.out.println("Resposta: " + new String(resp));

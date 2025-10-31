@@ -121,7 +121,7 @@ public class DnsServer {
                         final ObjectNode err = mapper.createObjectNode();
                         err.put("type", "ERROR");
                         err.put("message", "Unknown type: " + type);
-                        secureComm.sendSecure("client", mapper.writeValueAsBytes(err));
+                        secureComm.sendSecure(mapper.writeValueAsBytes(err));
                         break;
                     }
                 }
@@ -157,7 +157,7 @@ public class DnsServer {
         resp.put("name", name);
         resp.put("ip", ip);
 
-        secureComm.sendSecure("client", mapper.writeValueAsBytes(resp));
+        secureComm.sendSecure(mapper.writeValueAsBytes(resp));
     }
 
     private void handleUpdate(final SecureMessaging secureComm, final JsonNode node) throws IOException {
@@ -171,7 +171,7 @@ public class DnsServer {
         response.put("type", "ACK");
         response.put("name", name);
         response.put("ip", ip);
-        secureComm.sendSecure("client", mapper.writeValueAsBytes(response));
+        secureComm.sendSecure(mapper.writeValueAsBytes(response));
 
         // Envia NOTIFY para os listeners
         val notify = mapper.createObjectNode();
@@ -182,7 +182,7 @@ public class DnsServer {
 
         for (val listener : notifyListeners) {
             try {
-                listener.sendSecure("notify", notifyBytes);
+                listener.sendSecure(notifyBytes);
             } catch (final IOException e) {
                 // Problema com listener — remove
                 notifyListeners.remove(listener);
@@ -204,7 +204,7 @@ public class DnsServer {
         response.put("type", "REGISTERED");
 
         // Envia mensagem
-        secureComm.sendSecure("client", mapper.writeValueAsBytes(response));
+        secureComm.sendSecure(mapper.writeValueAsBytes(response));
     }
 
 }

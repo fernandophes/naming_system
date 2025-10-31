@@ -11,7 +11,7 @@ public interface SecureMessaging extends Closeable {
     /**
      * Envia uma mensagem de forma segura (cifrada e com HMAC)
      */
-    void sendSecure(String destination, byte[] message) throws IOException;
+    void sendSecure(byte[] message) throws IOException;
 
     /**
      * Recebe uma mensagem de forma segura (decifra e valida HMAC)

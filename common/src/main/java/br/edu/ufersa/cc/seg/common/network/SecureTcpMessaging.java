@@ -29,7 +29,7 @@ public class SecureTcpMessaging implements SecureMessaging {
     }
 
     @Override
-    public void sendSecure(final String destination, final byte[] message) throws IOException {
+    public void sendSecure(final byte[] message) throws IOException {
         final var secureMsg = cryptoService.encrypt(message);
         out.writeObject(secureMsg);
         out.flush();
