@@ -32,9 +32,9 @@ public class Registrador {
 
         // Receber dados do usuário
         System.out.println("REGISTRAR NOVO DOMÍNIO");
-        System.out.println("Nome: ");
+        System.out.print("Nome:\t");
         val name = scanner.nextLine();
-        System.out.println("Endereço: ");
+        System.out.print("IP:\t");
         val ip = scanner.nextLine();
 
         // Abrir conexão

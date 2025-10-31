@@ -166,6 +166,10 @@ public class DnsServer {
         val ip = node.get("ip").asText();
         dnsRecords.put(name, ip);
 
+        // Imprime log
+        log.info("Novo registro: {} -> {}", name, ip);
+        printMap();
+
         // Envia ACK para o registrador
         val response = mapper.createObjectNode();
         response.put("type", "ACK");
@@ -205,6 +209,13 @@ public class DnsServer {
 
         // Envia mensagem
         secureComm.sendSecure(mapper.writeValueAsBytes(response));
+    }
+
+    private void printMap() {
+        val text = new StringBuilder("ESTADO ATUAL DA TABELA DNS:\n");
+        dnsRecords.forEach((name, ip) -> text.append(name).append(" -> ").append(ip).append("\n"));
+
+        log.info(text.toString());
     }
 
 }
