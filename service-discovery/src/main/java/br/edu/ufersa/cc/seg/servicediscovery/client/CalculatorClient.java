@@ -15,10 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Cliente que consulta o DirectoryServer para descobrir serviços e chama um
  * serviço escolhido (round-robin ou random).
- * Uso: DiscoveryClient <strategy: rr|random> <op> <a> <b>
  */
 @Slf4j
-public class DiscoveryClient {
+public class CalculatorClient {
 
     private static final String DIRECTORY_HOST = "localhost";
     private static final int DIRECTORY_PORT = 9100;
@@ -31,25 +30,18 @@ public class DiscoveryClient {
     private final CryptoService crypto = new CryptoService(ENC_KEY, HMAC_KEY);
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public static void main(final String[] args) throws Exception {
+    public static void main(final String[] args) {
         final var scanner = new Scanner(System.in);
 
-        // Obter expressao numérica
-        System.out.println("\nNOVO CÁLCULO");
-        System.out.print("Expressão simples: ");
-        final var expression = scanner.nextLine().trim();
+        var isRunning = true;
+        while (isRunning) {
+            isRunning = interact(scanner);
+        }
+
         scanner.close();
-
-        // Separar partes do cálculo
-        final var parts = expression.splitWithDelimiters("[\\+\\-\\*\\/]", 99);
-        final var a = Double.parseDouble(parts[0]);
-        final var operator = parts[1];
-        final var b = Double.parseDouble(parts[2]);
-
-        new DiscoveryClient().run(operator, a, b);
     }
 
-    public void run(final String op, final double a, final double b) {
+    private void run(final String op, final double a, final double b) {
         try (final var messenger = new SecureTcpMessaging(DIRECTORY_HOST, DIRECTORY_PORT, crypto)) {
             // Cria requisição
             final var request = mapper.createObjectNode();
@@ -62,16 +54,16 @@ public class DiscoveryClient {
             // Recebe resposta
             final var responseInBytes = messenger.receiveSecure();
             final var response = mapper.readTree(responseInBytes);
-            final var address = response.get("address").asText();
+            final var address = response.get("address");
 
             // Interrompe se não houver endereços associados
-            if (address == null) {
+            if (address.isNull()) {
                 System.out.println("Nenhum serviço disponível");
                 return;
             }
 
             // 3) Call service
-            callService(address, op, a, b);
+            callService(address.asText(), op, a, b);
         } catch (final UnknownHostException e) {
             log.error("Host '{}' desconhecido", DIRECTORY_HOST, e);
         } catch (final JsonProcessingException e) {
@@ -109,6 +101,26 @@ public class DiscoveryClient {
         } catch (final IOException e) {
             log.error("Erro de I/O na comunicação com o serviço", e);
         }
+    }
+
+    private static boolean interact(final Scanner scanner) {
+        // Obter expressao numérica
+        System.out.println("\nNOVO CÁLCULO");
+        System.out.print("Expressão simples: ");
+        final var expression = scanner.nextLine().trim();
+
+        if ("x".equalsIgnoreCase(expression)) {
+            return false;
+        }
+
+        // Separar partes do cálculo
+        final var parts = expression.splitWithDelimiters("[\\+\\-\\*\\/]", 99);
+        final var a = Double.parseDouble(parts[0]);
+        final var operator = parts[1];
+        final var b = Double.parseDouble(parts[2]);
+
+        new CalculatorClient().run(operator, a, b);
+        return true;
     }
 
 }

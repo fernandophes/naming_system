@@ -15,6 +15,7 @@ import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
 import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.LoadBalancer;
+import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.RandomLoadBalancer;
 import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.RoundRobinLoadBalancer;
 import lombok.Data;
 import lombok.val;
@@ -50,7 +51,7 @@ public class DirectoryServer {
     private static final String ADDRESS = "address";
 
     private static final int DEFAULT_PORT = 9100;
-    private static final LoadBalancer<String> DEFAULT_LOAD_BALANCER = new RoundRobinLoadBalancer();
+    private static final LoadBalancer<String> DEFAULT_LOAD_BALANCER = new RandomLoadBalancer();
 
     // Mesmas chaves usadas pelos exemplos do projeto (demo)
     private static final byte[] ENC_KEY = java.util.Base64.getDecoder()
@@ -125,15 +126,19 @@ public class DirectoryServer {
     private void handleDiscover(final JsonNode request, final SecureMessaging messenger) throws IOException {
         // Obtém nome e endereço do serviço a ser buscado
         final var serviceName = request.get(SERVICE).asText();
-        log.info("Buscando endereço do servidor '{}'...", serviceName);
+        log.info("Buscando endereços do servidor '{}'...", serviceName);
 
         // Cria resposta
         final var response = mapper.createObjectNode();
         response.put(TYPE, "DISCOVERY_RESPONSE");
         response.put(SERVICE, serviceName);
 
+        // Adiciona endereço escolhido
         final var registryItem = registry.getOrDefault(serviceName, RegistryItem.empty());
-        response.put(ADDRESS, registryItem.getNextAddress());
+        final var chosen = registryItem.getNextAddress();
+        response.put(ADDRESS, chosen);
+
+        log.info("Endereço fornecido: {}", chosen);
 
         // Envia resposta
         messenger.sendSecure(mapper.writeValueAsBytes(response));

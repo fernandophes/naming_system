@@ -30,11 +30,9 @@ public class CalculatorServer {
     private final CryptoService crypto = new CryptoService(ENC_KEY, HMAC_KEY);
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private final String name;
     private final int port;
 
-    public CalculatorServer(final String serviceName, final int port) {
-        this.name = serviceName;
+    public CalculatorServer(final int port) {
         this.port = port;
     }
 
@@ -43,23 +41,22 @@ public class CalculatorServer {
 
         System.out.println("\nNOVA CALCULADORA");
 
-        System.out.print("Nome:\t");
-        val name = scanner.nextLine().trim();
-
         System.out.print("Porta:\t");
         val port = scanner.nextInt();
         scanner.close();
 
-        new CalculatorServer(name, port).start();
+        new CalculatorServer(port).start();
     }
 
     public void start() throws IOException {
+        log.info("Inciando calculadora...");
+
         // Registra no diretório
         try (val messenger = new SecureTcpMessaging(DIRECTORY_HOST, DIRECTORY_PORT, crypto)) {
             // Cria a requisição
             val request = mapper.createObjectNode();
             request.put("type", "REGISTER");
-            request.put("service", name);
+            request.put("service", "calculator");
             request.put("address", "localhost:" + port);
 
             // Envia a requisição
@@ -75,7 +72,7 @@ public class CalculatorServer {
             log.warn("Falha ao registrar no diretório: {}", e.getMessage());
         }
 
-        log.info("Iniciando servidor '{}' na porta {}", name, port);
+        log.info("Iniciando servidor na porta {}", port);
         try (val server = new ServerSocket(port)) {
             while (true) {
                 val client = new SecureTcpMessaging(server, crypto);
