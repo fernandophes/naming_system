@@ -21,6 +21,7 @@
     <modules>
         <module>common</module>
         <module>mini-dns</module>
+        <module>service-discovery</module>
     </modules>
 
     <properties>

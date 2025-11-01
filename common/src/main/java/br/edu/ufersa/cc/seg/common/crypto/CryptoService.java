@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CryptoService {
 
-    private static final String CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final String CIPHER_ALGORITHM = "AES/CBC/NoPadding";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final int IV_SIZE = 16;
 
