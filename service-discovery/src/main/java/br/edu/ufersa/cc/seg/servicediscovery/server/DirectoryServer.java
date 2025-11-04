@@ -18,7 +18,6 @@ import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.LoadBalancer;
 import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.RandomLoadBalancer;
 import br.edu.ufersa.cc.seg.servicediscovery.load_balancer.RoundRobinLoadBalancer;
 import lombok.Data;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
