@@ -24,7 +24,7 @@ public class Demo {
             // Cria requisição
             final var request = mapper.createObjectNode();
             request.put("type", "SEARCH");
-            request.put("fileName", "arquivo1");
+            request.put("fileName", "arquivo45");
 
             // Envia requisição
             messenger.sendSecure(mapper.writeValueAsBytes(request));

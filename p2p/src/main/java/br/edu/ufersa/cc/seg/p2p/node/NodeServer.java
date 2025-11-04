@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
@@ -25,6 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @RequiredArgsConstructor
 public class NodeServer {
+
+    private static final String ORIGIN_ID = "originId";
 
     private static final byte[] ENC_KEY = java.util.Base64.getDecoder().decode("DJXkb7GyuXP5Hfep9OLukQ==");
     private static final byte[] HMAC_KEY = java.util.Base64.getDecoder()
@@ -99,7 +102,7 @@ public class NodeServer {
             }
 
             // Obtém os dados da origem
-            final int originId = requestInJson.path("originId").asInt(id);
+            final int originId = requestInJson.path(ORIGIN_ID).asInt(-1);
 
             switch (type.toUpperCase()) {
                 case "SEARCH":
@@ -129,7 +132,7 @@ public class NodeServer {
         } else if (localFiles.contains(fileName)) {
             final var response = mapper.createObjectNode();
             response.put("type", "RESPONSE");
-            response.put("originId", originId);
+            response.put(ORIGIN_ID, originId);
             response.put("fileName", fileName);
             response.put("holderId", id);
 
@@ -140,6 +143,10 @@ public class NodeServer {
                 // informa o erro
                 log.info("[Nó {}] arquivo '{}' não encontrado no anel.", id, fileName);
             } else {
+                if (originId == -1) {
+                    request = ((ObjectNode) request).put(ORIGIN_ID, id);
+                }
+
                 // Busca no próximo nó
                 sendToNext(request.toString());
             }
