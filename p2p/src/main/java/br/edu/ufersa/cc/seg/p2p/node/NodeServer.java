@@ -87,29 +87,29 @@ public class NodeServer {
         try {
             // Aguarda e recebe a requisição
             final var requestInBytes = messenger.receiveSecure();
-            final var json = new String(requestInBytes);
-            final var request = mapper.readTree(json);
-            log.info("[Nó {}] Recebido: {}", id, json);
+            final var requestInString = new String(requestInBytes);
+            final var requestInJson = mapper.readTree(requestInString);
+            log.info("[Nó {}] Recebido: {}", id, requestInString);
 
             // Obtém o tipo de mensagem
-            final var type = request.path("type").asText(null);
+            final var type = requestInJson.path("type").asText(null);
             if (type == null) {
                 log.error("Mensagem sem tipo");
                 return;
             }
 
             // Obtém os dados da origem
-            final int originId = request.path("originId").asInt(id);
+            final int originId = requestInJson.path("originId").asInt(id);
 
             switch (type.toUpperCase()) {
                 case "SEARCH":
                     // Se for uma busca de arquivo
-                    handleSearchMessage(request, originId);
+                    handleSearchMessage(requestInJson, originId);
                     break;
 
                 case "RESPONSE":
                     // Se for uma resposta de busca
-                    handleResponseMessage(request, originId);
+                    handleResponseMessage(requestInJson, originId);
                     break;
 
                 default:

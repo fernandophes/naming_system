@@ -31,8 +31,8 @@ public class Demo {
 
             // Recebe a resposta
             final var responseInBytes = messenger.receiveSecure();
-            final var response = mapper.readTree(responseInBytes);
-            System.out.println("Resposta recebida: " + response.toPrettyString());
+            final var responseInJson = mapper.readTree(responseInBytes);
+            System.out.println("Resposta recebida: " + responseInJson.toPrettyString());
         }
 
     }

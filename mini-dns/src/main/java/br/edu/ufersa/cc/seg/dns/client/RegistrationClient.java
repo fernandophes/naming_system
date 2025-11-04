@@ -7,14 +7,12 @@ import java.util.Scanner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
-import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
-import lombok.val;
 
 /**
  * Cliente simples que envia UPDATE (registrador)
  */
-public class Registrador {
+public class RegistrationClient {
 
     // Localização do servidor DNS
     private static final String SERVER_HOST = "localhost";
@@ -28,7 +26,7 @@ public class Registrador {
     private static ObjectMapper mapper = new ObjectMapper();
 
     public static void main(final String[] args) throws Exception {
-        val scanner = new Scanner(System.in);
+        final var scanner = new Scanner(System.in);
 
         // Loop de interação
         var repeat = true;
@@ -44,7 +42,7 @@ public class Registrador {
         // Receber dados do usuário
         System.out.println("REGISTRAR NOVO DOMÍNIO (Digite 'x' para sair)");
         System.out.print("Nome:\t");
-        val name = scanner.nextLine();
+        final var name = scanner.nextLine();
 
         // Escape: sair quando usuário digitar "x"
         if (name.equalsIgnoreCase("x")) {
@@ -52,22 +50,22 @@ public class Registrador {
         }
 
         System.out.print("IP:\t");
-        val ip = scanner.nextLine();
+        final var ip = scanner.nextLine();
 
         // Abrir conexão
-        try (final SecureMessaging comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
+        try (final var messenger = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
             // Construir mensagem UPDATE
-            val request = mapper.createObjectNode();
+            final var request = mapper.createObjectNode();
             request.put("type", "UPDATE");
             request.put("name", name);
             request.put("ip", ip);
 
             // Enviar
-            comm.sendSecure(mapper.writeValueAsBytes(request));
+            messenger.sendSecure(mapper.writeValueAsBytes(request));
 
             // Receber e imprimir resposta
-            val resp = comm.receiveSecure();
-            System.out.println("Resposta: " + new String(resp));
+            final var responseInBytes = messenger.receiveSecure();
+            System.out.println("Resposta: " + new String(responseInBytes));
         }
 
         System.out.println();

@@ -5,7 +5,6 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
@@ -53,8 +52,8 @@ public class CalculatorClient {
 
             // Recebe resposta
             final var responseInBytes = messenger.receiveSecure();
-            final var response = mapper.readTree(responseInBytes);
-            final var address = response.get("address");
+            final var responseInJson = mapper.readTree(responseInBytes);
+            final var address = responseInJson.get("address");
 
             // Interrompe se não houver endereços associados
             if (address.isNull()) {
@@ -86,13 +85,13 @@ public class CalculatorClient {
             request.put("b", b);
 
             messenger.sendSecure(mapper.writeValueAsBytes(request));
-            final var respBytes = messenger.receiveSecure();
-            final JsonNode resp = mapper.readTree(respBytes);
+            final var responseInBytes = messenger.receiveSecure();
+            final var responseInJson = mapper.readTree(responseInBytes);
 
-            if (resp.has("result")) {
-                System.out.println("Resultado: " + resp.get("result").asDouble());
+            if (responseInJson.has("result")) {
+                System.out.println("Resultado: " + responseInJson.get("result").asDouble());
             } else {
-                System.out.println("Erro do serviço: " + resp.get("error").asText());
+                System.out.println("Erro do serviço: " + responseInJson.get("error").asText());
             }
         } catch (final UnknownHostException e) {
             log.error("Host '{}' desconhecido", host, e);

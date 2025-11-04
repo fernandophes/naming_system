@@ -8,16 +8,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
+import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
 import lombok.SneakyThrows;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Cliente simples que envia QUERY (requisitante)
  */
 @Slf4j
-public class Requisitante {
+public class RequestingClient {
 
     private static final String SERVER_HOST = "localhost";
     private static final int SERVER_PORT = 9000;
@@ -30,11 +30,11 @@ public class Requisitante {
     private static ObjectMapper mapper = new ObjectMapper();
 
     public static void main(final String[] args) throws Exception {
-        val scanner = new Scanner(System.in);
+        final var scanner = new Scanner(System.in);
 
-        val notificationListener = new Thread(() -> listenNotifications(scanner));
+        final var notificationListener = new Thread(() -> listenNotifications(scanner));
 
-        val interaction = new Thread(() -> {
+        final var interaction = new Thread(() -> {
             interact(scanner);
             notificationListener.interrupt();
         });
@@ -73,28 +73,28 @@ public class Requisitante {
 
     @SneakyThrows
     private static void sendQuery(final String name) {
-        try (val comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
+        try (final var messenger = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
 
             // Envia requisição
-            val request = mapper.createObjectNode();
+            final var request = mapper.createObjectNode();
             request.put("type", "QUERY");
             request.put("name", name);
-            comm.sendSecure(mapper.writeValueAsBytes(request));
+            messenger.sendSecure(mapper.writeValueAsBytes(request));
 
             // Processa resposta
-            val respBytes = comm.receiveSecure();
-            val respJson = mapper.readTree(respBytes);
-            printResponse(respJson);
+            final var responseInBytes = messenger.receiveSecure();
+            final var responseInJson = mapper.readTree(responseInBytes);
+            printResponse(responseInJson);
         }
     }
 
     private static void printResponse(final JsonNode resp) {
-        val type = resp.get("type").asText();
-        val name = resp.get("name").asText();
+        final var type = resp.get("type").asText();
+        final var name = resp.get("name").asText();
 
         if ("RESPONSE".equals(type)) {
             if (resp.has("ip")) {
-                val ip = resp.get("ip").asText();
+                final var ip = resp.get("ip").asText();
                 System.out.printf("%s → %s%n", name, ip);
             } else {
                 System.out.printf("%s → NÃO ENCONTRADO%n", name);
@@ -107,9 +107,9 @@ public class Requisitante {
     @SneakyThrows
     private static void listenNotifications(final Scanner scanner) {
         while (!Thread.currentThread().isInterrupted()) {
-            try (val comm = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
-                registerForNotifications(comm);
-                receiveNotifications(comm);
+            try (final var messenger = new SecureTcpMessaging(SERVER_HOST, SERVER_PORT, cryptoService)) {
+                registerForNotifications(messenger);
+                receiveNotifications(messenger);
             } catch (final EOFException e) {
                 log.error("Credenciais desconhecidas");
                 Thread.currentThread().interrupt();
@@ -125,29 +125,29 @@ public class Requisitante {
     }
 
     @SneakyThrows
-    private static void registerForNotifications(final SecureTcpMessaging comm) {
-        val request = mapper.createObjectNode();
+    private static void registerForNotifications(final SecureMessaging messenger) {
+        final var request = mapper.createObjectNode();
         request.put("type", "REGISTER_NOTIFY");
-        comm.sendSecure(mapper.writeValueAsBytes(request));
+        messenger.sendSecure(mapper.writeValueAsBytes(request));
 
-        val respBytes = comm.receiveSecure();
-        val resp = mapper.readTree(respBytes);
-        if (!"REGISTERED".equals(resp.get("type").asText())) {
-            throw new NotificationRegistrationException("Registro para notificação falhou: " + resp);
+        final var responseInBytes = messenger.receiveSecure();
+        final var responseInJson = mapper.readTree(responseInBytes);
+        if (!"REGISTERED".equals(responseInJson.get("type").asText())) {
+            throw new NotificationRegistrationException("Registro para notificação falhou: " + responseInJson);
         }
 
         log.info("Registrado para receber notificações");
     }
 
     @SneakyThrows
-    private static void receiveNotifications(final SecureTcpMessaging comm) {
+    private static void receiveNotifications(final SecureMessaging messenger) {
         while (!Thread.currentThread().isInterrupted()) {
-            val notifyBytes = comm.receiveSecure();
-            val notify = mapper.readTree(notifyBytes);
+            final var notificationInBytes = messenger.receiveSecure();
+            final var notificationInJson = mapper.readTree(notificationInBytes);
 
-            if ("NOTIFY".equals(notify.get("type").asText())) {
-                val name = notify.get("name").asText();
-                val ip = notify.get("ip").asText();
+            if ("NOTIFY".equals(notificationInJson.get("type").asText())) {
+                final var name = notificationInJson.get("name").asText();
+                final var ip = notificationInJson.get("ip").asText();
                 System.out.printf("%n[ATUALIZAÇÃO] %s → %s%n", name, ip);
             }
         }

@@ -10,7 +10,6 @@ import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
 import br.edu.ufersa.cc.seg.servicediscovery.exceptions.CalcException;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -37,12 +36,12 @@ public class CalculatorServer {
     }
 
     public static void main(final String[] args) throws Exception {
-        val scanner = new Scanner(System.in);
+        final var scanner = new Scanner(System.in);
 
         System.out.println("\nNOVA CALCULADORA");
 
         System.out.print("Porta:\t");
-        val port = scanner.nextInt();
+        final var port = scanner.nextInt();
         scanner.close();
 
         new CalculatorServer(port).start();
@@ -52,9 +51,9 @@ public class CalculatorServer {
         log.info("Inciando calculadora...");
 
         // Registra no diretório
-        try (val messenger = new SecureTcpMessaging(DIRECTORY_HOST, DIRECTORY_PORT, crypto)) {
+        try (final var messenger = new SecureTcpMessaging(DIRECTORY_HOST, DIRECTORY_PORT, crypto)) {
             // Cria a requisição
-            val request = mapper.createObjectNode();
+            final var request = mapper.createObjectNode();
             request.put("type", "REGISTER");
             request.put("service", "calculator");
             request.put("address", "localhost:" + port);
@@ -63,19 +62,19 @@ public class CalculatorServer {
             messenger.sendSecure(mapper.writeValueAsBytes(request));
 
             // Recebe a resposta
-            val responseInBytes = messenger.receiveSecure();
-            val response = mapper.readTree(responseInBytes);
+            final var responseInBytes = messenger.receiveSecure();
+            final var responseInJson = mapper.readTree(responseInBytes);
 
             // Imprime resultado do registro
-            log.info("Registro do serviço: {}", response.toString());
+            log.info("Registro do serviço: {}", responseInJson.toString());
         } catch (final Exception e) {
             log.warn("Falha ao registrar no diretório: {}", e.getMessage());
         }
 
         log.info("Iniciando servidor na porta {}", port);
-        try (val server = new ServerSocket(port)) {
+        try (final var server = new ServerSocket(port)) {
             while (true) {
-                val client = new SecureTcpMessaging(server, crypto);
+                final var client = new SecureTcpMessaging(server, crypto);
                 new Thread(() -> handleClient(client)).start();
             }
         }
@@ -83,37 +82,37 @@ public class CalculatorServer {
 
     private void handleClient(final SecureMessaging messenger) {
         // Cria a resposta
-        val response = mapper.createObjectNode();
-        response.put("type", "RESPONSE");
+        final var responseInJson = mapper.createObjectNode();
+        responseInJson.put("type", "RESPONSE");
 
         try {
             // Recebe a requisição
-            val data = messenger.receiveSecure();
-            val request = mapper.readTree(data);
-            val type = request.get("type").asText();
+            final var requestInBytes = messenger.receiveSecure();
+            final var requestInJson = mapper.readTree(requestInBytes);
+            final var type = requestInJson.get("type").asText();
 
             if ("CALL".equals(type)) {
                 // Obtém os dados do cálculo
-                val operator = request.get("op").asText();
-                val a = request.get("a").asDouble();
-                val b = request.get("b").asDouble();
+                final var operator = requestInJson.get("op").asText();
+                final var a = requestInJson.get("a").asDouble();
+                final var b = requestInJson.get("b").asDouble();
 
                 // Adiciona o resultado
-                final double result = calc(operator, a, b);
-                response.put("result", result);
+                final double result = calculate(operator, a, b);
+                responseInJson.put("result", result);
 
                 // Envia a resposta
-                messenger.sendSecure(mapper.writeValueAsBytes(response));
+                messenger.sendSecure(mapper.writeValueAsBytes(responseInJson));
             }
         } catch (final CalcException e) {
-            response.put("error", e.getMessage());
+            responseInJson.put("error", e.getMessage());
             log.warn("Erro no cálculo: {}", e.getMessage());
         } catch (final Exception e) {
             log.warn("Erro no serviço ao processar requisição: {}", e.getMessage());
         }
     }
 
-    private double calc(final String operator, final double a, final double b) throws CalcException {
+    private double calculate(final String operator, final double a, final double b) throws CalcException {
         return switch (operator) {
             case "+" -> a + b;
             case "-" -> a - b;

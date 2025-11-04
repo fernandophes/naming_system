@@ -2,123 +2,110 @@ package br.edu.ufersa.cc.seg.dns.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import br.edu.ufersa.cc.seg.common.crypto.CryptoException;
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.network.SecureMessaging;
 import br.edu.ufersa.cc.seg.common.network.SecureTcpMessaging;
-import lombok.val;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Component
+@RequiredArgsConstructor
 public class DnsServer {
 
-    private final Map<String, String> dnsRecords;
-    private final CryptoService cryptoService;
-    private final int port;
+    private static final byte[] ENC_KEY = java.util.Base64.getDecoder()
+            .decode("DJXkb7GyuXP5Hfep9OLukQ==");
+    private static final byte[] HMAC_KEY = java.util.Base64.getDecoder()
+            .decode("QYp+xG2d7Ir8Xo2ZyD7m8FJKwrFrxd9ayN9i4mBQlTg=");
 
-    // Lista de clientes que se registraram para receber NOTIFY
-    private final List<SecureMessaging> notifyListeners = new CopyOnWriteArrayList<>();
-
+    private final CryptoService cryptoService = new CryptoService(ENC_KEY, HMAC_KEY);
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /**
-     * Construtor do servidor DNS
-     * 
-     * Define atributos e já popula registros iniciais
-     * 
-     * @param cryptoService
-     * @param port
-     */
-    public DnsServer(final CryptoService cryptoService, final int port) {
-        this.cryptoService = cryptoService;
-        this.port = port;
-        this.dnsRecords = new ConcurrentHashMap<>();
-
-        // Registros iniciais
-        dnsRecords.put("servidor1", "192.168.0.10");
-        dnsRecords.put("servidor2", "192.168.0.20");
-        dnsRecords.put("servidor3", "192.168.0.30");
-        dnsRecords.put("servidor4", "192.168.0.40");
-        dnsRecords.put("servidor5", "192.168.0.50");
-        dnsRecords.put("servidor6", "192.168.0.60");
-        dnsRecords.put("servidor7", "192.168.0.70");
-        dnsRecords.put("servidor8", "192.168.0.80");
-        dnsRecords.put("servidor9", "192.168.0.90");
-        dnsRecords.put("servidor10", "192.168.0.100");
-    }
+    private final Map<String, String> servers = new HashMap<>();
+    private final List<SecureMessaging> listeners = new ArrayList<>();
+    private final int port;
 
     /**
      * Inicia o servidor DNS, ouvindo por conexões e processando requisições
      * dos clientes.
      */
     public void start() {
-        try (val serverSocket = new ServerSocket(port)) {
+        populateServers();
+
+        try (final var serverSocket = new ServerSocket(port)) {
             log.info("DNS Server iniciado na porta {}", port);
 
             // Fica ouvindo novos clientes
             while (true) {
                 // Aceita nova conexão
-                val clientSocket = new SecureTcpMessaging(serverSocket, cryptoService);
+                final var messenger = new SecureTcpMessaging(serverSocket, cryptoService);
 
                 // Delega uma nova thread para atender
-                new Thread(() -> handleClient(clientSocket)).start();
+                new Thread(() -> handleClient(messenger)).start();
             }
         } catch (final IOException e) {
             log.error("Erro ao iniciar servidor DNS", e);
         }
     }
 
-    private void handleClient(final SecureMessaging secureComm) {
+    private void populateServers() {
+        servers.put("servidor1", "192.168.0.10");
+        servers.put("servidor2", "192.168.0.20");
+        servers.put("servidor3", "192.168.0.30");
+        servers.put("servidor4", "192.168.0.40");
+        servers.put("servidor5", "192.168.0.50");
+        servers.put("servidor6", "192.168.0.60");
+        servers.put("servidor7", "192.168.0.70");
+        servers.put("servidor8", "192.168.0.80");
+        servers.put("servidor9", "192.168.0.90");
+        servers.put("servidor10", "192.168.0.100");
+    }
+
+    private void handleClient(final SecureMessaging messenger) {
         // Inicializa valores padrão
         var registeredForNotify = false;
 
         try {
             while (true) {
                 // Recebe mensagem criptografada em bytes
-                val payload = secureComm.receiveSecure();
+                final var requestInBytes = messenger.receiveSecure();
 
                 // Descarta se payload for nulo
-                if (payload == null)
+                if (requestInBytes == null)
                     break;
 
                 // Transforma em JSON e obter tipo
-                val body = new String(payload, StandardCharsets.UTF_8);
-                val node = mapper.readTree(body);
-                val type = node.get("type").asText();
+                final var requestInJson = mapper.readTree(requestInBytes);
+                final var type = requestInJson.get("type").asText();
 
                 switch (type) {
                     case "QUERY": {
-                        handleQuery(secureComm, node);
+                        handleQuery(messenger, requestInJson);
                         break;
                     }
                     case "UPDATE": {
-                        handleUpdate(secureComm, node);
+                        handleUpdate(messenger, requestInJson);
                         break;
                     }
                     case "REGISTER_NOTIFY": {
                         // Cliente quer receber notificações; mantemos a conexão aberta
                         registeredForNotify = true;
-                        handleRegisterNotify(secureComm);
+                        handleRegisterNotify(messenger);
                         break;
                     }
                     default: {
-                        final ObjectNode err = mapper.createObjectNode();
+                        final var err = mapper.createObjectNode();
                         err.put("type", "ERROR");
                         err.put("message", "Unknown type: " + type);
-                        secureComm.sendSecure(mapper.writeValueAsBytes(err));
+                        messenger.sendSecure(mapper.writeValueAsBytes(err));
                         break;
                     }
                 }
@@ -130,12 +117,12 @@ public class DnsServer {
         } catch (final Exception e) {
             log.error("Erro processando cliente", e);
         } finally {
-            if (registeredForNotify && secureComm != null) {
-                notifyListeners.remove(secureComm);
+            if (registeredForNotify && messenger != null) {
+                listeners.remove(messenger);
             }
-            if (secureComm != null) {
+            if (messenger != null) {
                 try {
-                    secureComm.close();
+                    messenger.close();
                 } catch (final IOException e) {
                     // ignore
                 }
@@ -143,52 +130,52 @@ public class DnsServer {
         }
     }
 
-    private void handleQuery(final SecureMessaging secureComm, final JsonNode node) throws IOException {
+    private void handleQuery(final SecureMessaging messenger, final JsonNode request) throws IOException {
         // Obter o nome
-        val name = node.get("name").asText();
+        final var name = request.get("name").asText();
 
         // Encontrar o IP correspondente
-        val ip = dnsRecords.get(name);
+        final var ip = servers.get(name);
 
         // Criar mensagem de resposta
-        val resp = mapper.createObjectNode();
+        final var resp = mapper.createObjectNode();
         resp.put("type", "RESPONSE");
         resp.put("name", name);
         resp.put("ip", ip);
 
-        secureComm.sendSecure(mapper.writeValueAsBytes(resp));
+        messenger.sendSecure(mapper.writeValueAsBytes(resp));
     }
 
-    private void handleUpdate(final SecureMessaging secureComm, final JsonNode node) throws IOException {
+    private void handleUpdate(final SecureMessaging messenger, final JsonNode request) throws IOException {
         // Inclui novo registro
-        val name = node.get("name").asText();
-        val ip = node.get("ip").asText();
-        dnsRecords.put(name, ip);
+        final var name = request.get("name").asText();
+        final var ip = request.get("ip").asText();
+        servers.put(name, ip);
 
         // Imprime log
         log.info("Novo registro: {} -> {}", name, ip);
         printMap();
 
         // Envia ACK para o registrador
-        val response = mapper.createObjectNode();
+        final var response = mapper.createObjectNode();
         response.put("type", "ACK");
         response.put("name", name);
         response.put("ip", ip);
-        secureComm.sendSecure(mapper.writeValueAsBytes(response));
+        messenger.sendSecure(mapper.writeValueAsBytes(response));
 
         // Envia NOTIFY para os listeners
-        val notify = mapper.createObjectNode();
+        final var notify = mapper.createObjectNode();
         notify.put("type", "NOTIFY");
         notify.put("name", name);
         notify.put("ip", ip);
-        val notifyBytes = mapper.writeValueAsBytes(notify);
+        final var notifyBytes = mapper.writeValueAsBytes(notify);
 
-        for (val listener : notifyListeners) {
+        for (final var listener : listeners) {
             try {
                 listener.sendSecure(notifyBytes);
             } catch (final IOException e) {
                 // Problema com listener — remove
-                notifyListeners.remove(listener);
+                listeners.remove(listener);
                 try {
                     listener.close();
                 } catch (final IOException ex) {
@@ -198,21 +185,21 @@ public class DnsServer {
         }
     }
 
-    private void handleRegisterNotify(final SecureMessaging secureComm) throws IOException {
+    private void handleRegisterNotify(final SecureMessaging messenger) throws IOException {
         // Adiciona conexão à lista de listeners
-        notifyListeners.add(secureComm);
+        listeners.add(messenger);
 
         // Cria mensagem confirmando a inscrição
-        val response = mapper.createObjectNode();
+        final var response = mapper.createObjectNode();
         response.put("type", "REGISTERED");
 
         // Envia mensagem
-        secureComm.sendSecure(mapper.writeValueAsBytes(response));
+        messenger.sendSecure(mapper.writeValueAsBytes(response));
     }
 
     private void printMap() {
-        val text = new StringBuilder("ESTADO ATUAL DA TABELA DNS:\n");
-        dnsRecords.forEach((name, ip) -> text.append(name).append(" -> ").append(ip).append("\n"));
+        final var text = new StringBuilder("ESTADO ATUAL DA TABELA DNS:\n");
+        servers.forEach((name, ip) -> text.append(name).append(" -> ").append(ip).append("\n"));
 
         log.info(text.toString());
     }

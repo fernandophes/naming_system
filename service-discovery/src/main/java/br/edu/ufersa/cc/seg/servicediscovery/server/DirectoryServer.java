@@ -71,9 +71,9 @@ public class DirectoryServer {
 
     public void start(final int port) throws IOException {
         log.info("Iniciando DirectoryServer em porta {}", port);
-        try (val server = new ServerSocket(port)) {
+        try (final var server = new ServerSocket(port)) {
             while (true) {
-                val client = new SecureTcpMessaging(server, crypto);
+                final var client = new SecureTcpMessaging(server, crypto);
                 new Thread(() -> handleClient(client)).start();
             }
         }
@@ -82,17 +82,18 @@ public class DirectoryServer {
     private void handleClient(final SecureMessaging messenger) {
         try {
             // Esperar e receber requisição
-            val requestInBytes = messenger.receiveSecure();
-            val request = mapper.readTree(requestInBytes);
+            final var requestInBytes = messenger.receiveSecure();
+            final var requestInJson = mapper.readTree(requestInBytes);
+            
 
             // Redirecionar conforme o tipo
-            val type = request.get(TYPE).asText();
+            final var type = requestInJson.get(TYPE).asText();
             switch (type) {
                 case "REGISTER":
-                    handleRegister(request, messenger);
+                    handleRegister(requestInJson, messenger);
                     break;
                 case "DISCOVER":
-                    handleDiscover(request, messenger);
+                    handleDiscover(requestInJson, messenger);
                     break;
                 default:
                     log.warn("Tipo de mensagem desconhecido: {}", type);
@@ -106,15 +107,15 @@ public class DirectoryServer {
 
     private void handleRegister(final JsonNode request, final SecureMessaging messenger) throws IOException {
         // Obtém nome e endereço do serviço a ser registrado
-        val serviceName = request.get(SERVICE).asText();
-        val address = request.get(ADDRESS).asText();
+        final var serviceName = request.get(SERVICE).asText();
+        final var address = request.get(ADDRESS).asText();
 
         // Adiciona à tabela (ou a atualiza)
         registry.computeIfAbsent(serviceName, ignoredSvcName -> new RegistryItem(DEFAULT_LOAD_BALANCER));
         registry.get(serviceName).getAddresses().add(address);
 
         // Cria resposta
-        val resp = mapper.createObjectNode();
+        final var resp = mapper.createObjectNode();
         resp.put(TYPE, "REGISTERED");
         resp.put(SERVICE, serviceName);
         resp.put(ADDRESS, address);

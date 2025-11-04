@@ -9,7 +9,6 @@ import java.net.Socket;
 import br.edu.ufersa.cc.seg.common.crypto.CryptoService;
 import br.edu.ufersa.cc.seg.common.crypto.SecurityMessage;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 
 /**
  * Implementação TCP da interface SecureMessaging
@@ -47,7 +46,7 @@ public class SecureTcpMessaging implements SecureMessaging {
     @Override
     public byte[] receiveSecure() throws IOException {
         try {
-            val secureMsg = (SecurityMessage) in.readObject();
+            final var secureMsg = (SecurityMessage) in.readObject();
             return cryptoService.decrypt(secureMsg);
         } catch (final ClassNotFoundException e) {
             throw new IOException("Erro ao deserializar mensagem", e);
